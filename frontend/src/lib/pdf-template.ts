@@ -1,4 +1,5 @@
 // lib/pdf-template.ts — HTML template rendered by Puppeteer into a PDF
+import { buildTopologySvg } from "./topology-svg";
 
 export function buildReportHtml(report: Record<string, unknown>): string {
   const meta     = (report.meta     as Record<string, string>)  ?? {};
@@ -15,50 +16,127 @@ export function buildReportHtml(report: Record<string, unknown>): string {
     info:     "#636366",
   };
 
-  const findingsHtml = findings.map((f) => `
-    <div class="finding">
-      <div class="finding-header">
-        <span class="cve-id">${f.cve_id}</span>
-        <span class="severity-badge" style="background:${severityColor[String(f.severity)] ?? "#888"}">${String(f.severity).toUpperCase()}</span>
-        <span class="cvss">CVSS ${f.cvss_v3}</span>
-      </div>
-      <h3>${f.title}</h3>
-      <p><strong>Affected:</strong> ${f.affected}</p>
-      <p>${f.description}</p>
-      ${f.evidence ? `<pre class="evidence">${f.evidence}</pre>` : ""}
-      <p><strong>OWASP:</strong> ${f.owasp ?? "N/A"}</p>
+  // ── Helpers ─────────────────────────────────────────────────────────
+  function safeStr(v: unknown, fallback = "—"): string {
+    if (v === null || v === undefined) return fallback;
+    if (typeof v === "object")         return fallback;
+    const s = String(v).trim();
+    return s === "" || s === "null" || s === "undefined" ? fallback : s;
+  }
+
+  function sevBadge(sev: string): string {
+    const color = severityColor[sev.toLowerCase()] ?? "#888";
+    return `<span class="severity-badge" style="background:${color}">${sev.toUpperCase()}</span>`;
+  }
+
+  function remediationBlock(f: Record<string, unknown>): string {
+    const rem = (typeof f.remediation === "object" && f.remediation !== null)
+      ? (f.remediation as Record<string, unknown>)
+      : {};
+
+    const short   = safeStr(rem.short   ?? f.remediation_short);
+    const detail  = safeStr(rem.detail,  "");
+    const command = safeStr(rem.command  ?? f.remediation_cmd,     "");
+    const pkg     = safeStr(rem.package  ?? f.remediation_package, "");
+    const valid   = safeStr(rem.validation, "");
+
+    return `
       <div class="remediation">
-        <strong>Remediation:</strong>
-        <code>${f.remediation}</code>
-      </div>
-    </div>
-  `).join("");
+        <div class="rem-title">Remediation</div>
+        <div class="rem-short">${short}</div>
+        ${detail  ? `<p style="font-size:11px;color:#555;margin:6px 0">${detail}</p>` : ""}
+        ${pkg     ? `<div class="exrow"><strong>Package:</strong> ${pkg}</div>` : ""}
+        ${command ? `<pre class="cmd">${command}</pre>` : ""}
+        ${valid   ? `<div class="exrow"><strong>Validation:</strong> ${valid}</div>` : ""}
+      </div>`;
+  }
+
+  // ── Renderers ───────────────────────────────────────────────────────
+
+  const findingsHtml = findings.map((f) => {
+    const owasp = safeStr(
+      f.owasp_category ?? 
+      (f.exploit_result as Record<string,unknown> | null)?.owasp_category ??
+      f.owasp
+    );
+    
+    return `
+      <div class="finding">
+        <div class="finding-header">
+          <span class="cve-id">${f.cve_id}</span>
+          ${sevBadge(String(f.severity))}
+          <span class="cvss">CVSS ${f.cvss_v3}</span>
+        </div>
+        <h3>${f.title}</h3>
+        <p><strong>Affected:</strong> ${f.affected_component ?? f.affected}</p>
+        <p>${f.description}</p>
+        ${f.evidence_stdout || f.evidence ? `<pre class="evidence">${f.evidence_stdout || f.evidence}</pre>` : ""}
+        <p><strong>OWASP:</strong> ${owasp}</p>
+        ${remediationBlock(f)}
+      </div>`;
+  }).join("");
 
   const cvssRows = cvssTable.map((row) => `
     <tr>
       <td>${row.cve_id}</td>
       <td>${row.cvss_v3}</td>
-      <td><span class="severity-badge" style="background:${severityColor[String(row.severity)] ?? "#888"}">${String(row.severity).toUpperCase()}</span></td>
+      <td>${sevBadge(String(row.severity))}</td>
     </tr>
   `).join("");
 
-  const timelineRows = timeline.map((t) => `
-    <tr>
-      <td>${t.time}</td>
-      <td>${t.agent}</td>
-      <td>${t.action}</td>
-    </tr>
-  `).join("");
+  const timelineRows = timeline.map((t) => {
+    const time   = safeStr(t.time_offset ?? t.time ?? t.timestamp);
+    const agent  = safeStr(t.agent ?? t.phase ?? t.who);
+    const action = safeStr(t.action ?? t.description);
+    const outcome= safeStr(t.outcome, "");
 
-  const runbookRows = runbook.map((r) => `
-    <tr>
-      <td>${r.priority}</td>
-      <td>${r.cve_id}</td>
-      <td>${r.fix}</td>
-      <td><code>${r.command}</code></td>
-      <td>${r.validation}</td>
-    </tr>
-  `).join("");
+    return `
+      <tr>
+        <td>${time}</td>
+        <td>${agent}</td>
+        <td>${action}</td>
+        <td>${outcome}</td>
+      </tr>`;
+  }).join("");
+
+  const runbookRows = runbook.map((r) => {
+    const fix     = safeStr(r.fix_summary ?? r.fix ?? r.short ?? r.remediation_short);
+    const command = safeStr(r.command ?? r.remediation_cmd, "");
+    const valid   = safeStr(r.validation, "");
+    const effort  = safeStr(r.estimated_effort, "");
+
+    const steps = Array.isArray(r.steps)
+      ? `<ol style="margin:4px 0 0 14px;font-size:10px">${(r.steps as unknown[]).map(s => `<li>${s}</li>`).join("")}</ol>`
+      : "";
+
+    return `
+      <tr>
+        <td style="font-weight:700">${safeStr(r.priority)}</td>
+        <td>${sevBadge(String(r.severity ?? "info"))}</td>
+        <td style="font-weight:700">${safeStr(r.cve_id)}</td>
+        <td>${fix}${steps}</td>
+        <td>${command ? `<code>${command}</code>` : "—"}</td>
+        <td>${valid}</td>
+        <td>${effort}</td>
+      </tr>`;
+  }).join("");
+
+  // Feature 5 — Narrative
+  const narrative = String(report.attack_narrative ?? "");
+
+  // Bug 5 Fix: open_ports extraction
+  const recon      = (report.recon as Record<string, unknown>) ?? {};
+  const rawPorts   = (recon.open_ports ?? report.open_ports) as Record<string, unknown>[] ?? [];
+  const openPorts  = rawPorts
+    .filter(p => p && p.port)
+    .map(p => ({
+      port:     Number(p.port),
+      service:  String(p.service  ?? "unknown"),
+      severity: String(
+        findings.find(f => Number(f.affected_port) === Number(p.port))?.severity ?? "info"
+      ),
+    }));
+  const topologySvg = buildTopologySvg(String(meta.target ?? "N/A"), openPorts);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -69,8 +147,8 @@ export function buildReportHtml(report: Record<string, unknown>): string {
   body { font-family: 'Courier New', monospace; font-size: 12px; color: #1a1a1a; background: #fff; }
 
   .cover {
-    height: 100vh; display: flex; flex-direction: column;
-    justify-content: center; padding: 80px;
+    min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: center; padding: 96px 80px;
     border-left: 8px solid #ff2d55;
   }
   .cover-label { font-size: 10px; letter-spacing: 4px; color: #888; text-transform: uppercase; margin-bottom: 24px; }
@@ -79,7 +157,7 @@ export function buildReportHtml(report: Record<string, unknown>): string {
   .cover-meta  { font-size: 11px; color: #888; line-height: 2; }
   .cover-meta strong { color: #333; }
 
-  .page { padding: 60px; page-break-before: always; }
+  .page { padding: 64px 72px; page-break-before: always; }
   h1 { font-size: 22px; font-weight: 900; margin-bottom: 24px; border-bottom: 2px solid #000; padding-bottom: 8px; }
   h2 { font-size: 16px; font-weight: 700; margin: 32px 0 12px; }
   h3 { font-size: 13px; font-weight: 700; margin: 16px 0 8px; }
@@ -89,11 +167,15 @@ export function buildReportHtml(report: Record<string, unknown>): string {
   .finding-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
   .cve-id { font-weight: 900; font-size: 13px; }
   .cvss   { font-size: 11px; color: #888; }
-  .severity-badge { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: #fff; padding: 2px 8px; border-radius: 2px; }
+  .severity-badge { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: #fff; padding: 2px 8px; border-radius: 2px; text-transform: uppercase; }
 
   .evidence { background: #1a1a1a; color: #00ff41; padding: 12px; border-radius: 4px; font-size: 10px; margin: 12px 0; white-space: pre-wrap; word-break: break-all; }
-  .remediation { background: #f5f5f5; padding: 12px; border-radius: 4px; margin-top: 12px; }
-  .remediation code { font-family: 'Courier New', monospace; font-size: 11px; color: #d63031; }
+  
+  .remediation { background: #f5f5f5; padding: 16px; border-radius: 4px; margin-top: 12px; border-left: 3px solid #ccc; }
+  .rem-title { font-weight: 900; font-size: 10px; text-transform: uppercase; color: #888; margin-bottom: 4px; }
+  .rem-short { font-weight: 700; color: #000; font-size: 12px; }
+  .exrow { font-size: 10px; margin-top: 4px; color: #666; }
+  pre.cmd { background: #eee; padding: 8px; border-radius: 3px; font-size: 10px; color: #d63031; margin-top: 8px; overflow-x: auto; }
 
   table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 12px; }
   th { background: #1a1a1a; color: #fff; padding: 8px 12px; text-align: left; font-size: 10px; letter-spacing: 1px; }
@@ -121,6 +203,15 @@ export function buildReportHtml(report: Record<string, unknown>): string {
 <div class="page">
   <h1>Executive Summary</h1>
   <p>${String(report.executive_summary ?? "").replace(/\n/g, "</p><p>")}</p>
+
+  <h2>Network Topology</h2>
+  ${topologySvg}
+
+  ${narrative ? `
+  <h2>Attack Narrative</h2>
+  <div style="border-left:3px solid #ff2d55;padding:0 0 0 16px;margin:12px 0">
+    <p style="font-style:italic;color:#555">${narrative.replace(/\n\n/g, "</p><p style='font-style:italic;color:#555'>")}</p>
+  </div>` : ""}
 
   <h2>Methodology</h2>
   <p>
@@ -150,8 +241,8 @@ export function buildReportHtml(report: Record<string, unknown>): string {
 
   <h2>Attack Timeline</h2>
   <table>
-    <thead><tr><th>Time</th><th>Agent</th><th>Action</th></tr></thead>
-    <tbody>${timelineRows || "<tr><td colspan='3'>No data</td></tr>"}</tbody>
+    <thead><tr><th>Time</th><th>Agent</th><th>Action</th><th>Outcome</th></tr></thead>
+    <tbody>${timelineRows || "<tr><td colspan='4'>No data</td></tr>"}</tbody>
   </table>
 </div>
 
@@ -159,8 +250,8 @@ export function buildReportHtml(report: Record<string, unknown>): string {
 <div class="page">
   <h1>Remediation Runbook</h1>
   <table>
-    <thead><tr><th>#</th><th>CVE</th><th>Fix</th><th>Command</th><th>Validation</th></tr></thead>
-    <tbody>${runbookRows || "<tr><td colspan='5'>No data</td></tr>"}</tbody>
+    <thead><tr><th>#</th><th>Sev</th><th>CVE</th><th>Fix</th><th>Command</th><th>Validation</th><th>Effort</th></tr></thead>
+    <tbody>${runbookRows || "<tr><td colspan='7'>No data</td></tr>"}</tbody>
   </table>
 </div>
 

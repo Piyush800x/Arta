@@ -101,6 +101,15 @@ export default function LogFeed({ logs, autoScroll = true }: Props) {
           {log.tool && (
             <span className={styles.tool}>[{log.tool}]</span>
           )}
+
+          {/* Feature 4 — Live Exploit Terminal */}
+          {log.payload?.evidence_stdout && (
+            <div className={styles.terminalBlock}>
+              <pre className={styles.terminalOut}>
+                {String(log.payload.evidence_stdout).slice(0, 1000)}
+              </pre>
+            </div>
+          )}
         </div>
       ))}
 

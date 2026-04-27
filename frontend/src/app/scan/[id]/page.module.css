@@ -140,10 +140,10 @@
   flex-shrink: 0;
   padding: 24px;
   overflow-y: auto;
-  max-height: calc(100vh - 148px);
+  height: calc(100vh - 148px);
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 16px;
   background: var(--black);
 }
 

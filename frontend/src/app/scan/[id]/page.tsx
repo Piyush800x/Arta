@@ -9,6 +9,7 @@ import AgentStepper   from "@/components/AgentStepper";
 import LogFeed        from "@/components/LogFeed";
 import FindingsTable  from "@/components/FindingsTable";
 import ReportViewer   from "@/components/ReportViewer";
+import RiskGauge      from "@/components/RiskGauge";
 import styles         from "./page.module.css";
 
 const TERMINAL_STATUSES: SessionStatus[] = ["complete", "error"];
@@ -22,6 +23,8 @@ export default function ScanPage() {
   const [logs,     setLogs]     = useState<LogEvent[]>([]);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [pdfUrl,   setPdfUrl]   = useState<string | null>(null);
+  const [riskScore, setRiskScore] = useState<number>(0);
+  const [overallRisk, setOverallRisk] = useState<string>("");
   const [connErr,  setConnErr]  = useState<string | null>(null);
 
   const esRef        = useRef<EventSource | null>(null);
@@ -58,8 +61,10 @@ export default function ScanPage() {
         setLogs((prev) => [...prev, log]);
 
         // PDF_READY event: grab the download URL
-        if (log.message === "PDF_READY" && log.payload?.pdf_url) {
+        if (log.message === "PDF_READY" && log.payload) {
           setPdfUrl(`/api/report/${sessionId}/pdf`);
+          if (log.payload.risk_score) setRiskScore(Number(log.payload.risk_score));
+          if (log.payload.overall_risk) setOverallRisk(String(log.payload.overall_risk));
         }
 
         // Update stepper from log events
@@ -158,8 +163,13 @@ export default function ScanPage() {
         {/* Sidebar: findings + report */}
         {(findings.length > 0 || pdfUrl) && (
           <aside className={styles.sidebar}>
+            {riskScore > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <RiskGauge score={riskScore} overallRisk={overallRisk} />
+              </div>
+            )}
             {findings.length > 0 && (
-              <FindingsTable findings={findings} />
+              <FindingsTable findings={findings} targetIp={session?.target_scope ?? ""} />
             )}
             {pdfUrl && (
               <div style={{ marginTop: 24 }}>
