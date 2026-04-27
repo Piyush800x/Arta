@@ -1,0 +1,80 @@
+.wrap {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--black-2);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--black-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--col-info);
+}
+
+.count {
+  font-size: 11px;
+  color: var(--border);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.table thead th {
+  background: var(--black-3);
+  color: var(--col-info);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border-light);
+  transition: background 0.1s;
+}
+
+.table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.table tbody tr:last-child { border-bottom: none; }
+
+.table td {
+  padding: 10px 14px;
+  color: #8b949e;
+  vertical-align: middle;
+}
+
+.cveId   { font-weight: 700; color: #e6edf3; font-family: var(--font-mono); }
+.cvss    { font-weight: 700; color: #e6edf3; }
+.version { color: var(--border); font-size: 10px; }
+
+.sevBadge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--black);
+  padding: 2px 7px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.yes { color: var(--col-tool); }
+.no  { color: var(--border); }
+
+.success { color: var(--col-success); font-weight: 700; }
+.failed  { color: var(--col-error); }
+.na      { color: var(--border); }

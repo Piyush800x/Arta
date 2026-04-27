@@ -1,0 +1,187 @@
+/* scan/[id]/page.module.css */
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--black);
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background: var(--black-2);
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.topbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.backLink {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--col-info);
+  text-decoration: none;
+  letter-spacing: 1px;
+  transition: color 0.15s;
+}
+.backLink:hover { color: var(--green); }
+
+.sep { color: var(--border); font-size: 16px; }
+
+.target {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: 1px;
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.meta {
+  font-size: 11px;
+  color: var(--col-info);
+}
+
+.critical {
+  color: var(--sev-critical);
+  font-weight: 700;
+}
+
+/* ── Status pill ─────────────────────────────────────────────────────── */
+.pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  font-family: var(--font-display);
+}
+
+.pillPending { color: var(--col-info);    border-color: var(--border);          background: var(--black-4); }
+.pillActive  { color: var(--green);       border-color: var(--green-dim);        background: var(--green-glow-s); animation: pulse-green 2s infinite; }
+.pillExploit { color: var(--col-error);   border-color: rgba(248,81,73,0.4);    background: rgba(248,81,73,0.08); animation: pulse-green 2s infinite; }
+.pillDone    { color: var(--col-success); border-color: rgba(0,255,65,0.4);     background: var(--green-glow-s); }
+.pillError   { color: var(--col-error);   border-color: rgba(248,81,73,0.4);    background: rgba(248,81,73,0.08); }
+
+/* ── Connection error banner ─────────────────────────────────────────── */
+.connErrBanner {
+  background: rgba(210,153,34,0.1);
+  border-bottom: 1px solid rgba(210,153,34,0.3);
+  color: var(--col-warning);
+  font-size: 11px;
+  padding: 8px 24px;
+  animation: fade-in-up 0.2s ease;
+}
+
+/* ── Main body ───────────────────────────────────────────────────────── */
+.body {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  min-height: 0;
+}
+
+/* ── Log section ─────────────────────────────────────────────────────── */
+.logSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 28px;
+  background: var(--black-2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--col-info);
+}
+
+.logCount {
+  font-size: 10px;
+  color: var(--border);
+}
+
+.logWrap {
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 148px);
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 560px;
+  flex-shrink: 0;
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(100vh - 148px);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--black);
+}
+
+/* ── Error banner ────────────────────────────────────────────────────── */
+.errorBanner {
+  background: rgba(248,81,73,0.08);
+  border-top: 1px solid rgba(248,81,73,0.25);
+  color: var(--col-error);
+  font-size: 12px;
+  padding: 12px 24px;
+}
+
+/* ── Waiting for PDF ─────────────────────────────────────────────────── */
+.waitingPdf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--col-info);
+  font-size: 12px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--black-2);
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .body { flex-direction: column; }
+  .logSection { border-right: none; border-bottom: 1px solid var(--border); }
+  .sidebar { width: 100%; max-height: none; }
+  .logWrap { max-height: 50vh; }
+}

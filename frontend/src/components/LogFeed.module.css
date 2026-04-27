@@ -1,0 +1,113 @@
+.feed {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1;
+  padding: 16px 0;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--col-info);
+  padding: 40px 28px;
+  font-size: 12px;
+}
+
+/* ── Log row ─────────────────────────────────────────────────────────── */
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  padding: 5px 28px;
+  border-left: 2px solid transparent;
+  animation: slide-in 0.15s ease both;
+  transition: background 0.1s;
+}
+
+.row:hover { background: rgba(255,255,255,0.02); }
+
+/* ── Columns ─────────────────────────────────────────────────────────── */
+.time {
+  color: var(--border);
+  font-size: 10px;
+  width: 72px;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+}
+
+.agent {
+  font-size: 10px;
+  font-weight: 700;
+  width: 110px;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+
+.icon {
+  width: 18px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.message {
+  flex: 1;
+  word-break: break-word;
+  padding-left: 6px;
+}
+
+.duration {
+  font-size: 10px;
+  color: var(--border);
+  padding-left: 12px;
+  flex-shrink: 0;
+}
+
+.tool {
+  font-size: 10px;
+  padding-left: 8px;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+/* ── Level colours ───────────────────────────────────────────────────── */
+.levelInfo    { color: var(--col-info); }
+.levelInfo .icon { color: var(--border); }
+
+.levelGemini  { color: var(--col-gemini); border-left-color: var(--col-gemini); background: rgba(163,113,247,0.04); }
+.levelGemini .agent { color: var(--col-gemini); }
+
+.levelSuccess { color: var(--col-success); border-left-color: var(--col-success); background: var(--green-glow-s); }
+.levelSuccess .agent { color: var(--col-success); }
+
+.levelWarning { color: var(--col-warning); border-left-color: var(--col-warning); background: rgba(210,153,34,0.05); }
+.levelWarning .agent { color: var(--col-warning); }
+
+.levelError   { color: var(--col-error);   border-left-color: var(--col-error);   background: rgba(248,81,73,0.05); }
+.levelError .agent { color: var(--col-error); }
+
+.levelTool    { color: var(--col-tool);    border-left-color: var(--col-tool);    background: rgba(56,139,253,0.04); }
+.levelTool .agent { color: var(--col-tool); }
+
+/* ── Agent badge colours ─────────────────────────────────────────────── */
+.agentOrchestrator { color: var(--agent-orchestrator); }
+.agentRecon        { color: var(--agent-recon); }
+.agentVuln         { color: var(--agent-vuln); }
+.agentExploit      { color: var(--agent-exploit); }
+.agentReport       { color: var(--agent-report); }
+
+/* ── Blinking cursor ─────────────────────────────────────────────────── */
+.cursorRow {
+  padding: 6px 28px;
+  display: flex;
+  align-items: center;
+}
+
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: var(--green);
+  animation: blink 1s step-end infinite;
+  vertical-align: middle;
+}

@@ -1,0 +1,86 @@
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 20px 28px;
+  background: var(--black-2);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.stepRow {
+  display: flex;
+  align-items: center;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.indicator {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* States */
+.pending .indicator { background: var(--black-4); color: var(--col-info); }
+.pending .stepName  { color: var(--col-info); }
+.pending .stepState { color: var(--border); }
+
+.active .indicator  { background: var(--green-glow); border: 1px solid var(--green); animation: pulse-green 1.5s infinite; }
+.active .stepName   { color: var(--green); }
+.active .stepState  { color: var(--green-dim); }
+
+.done .indicator    { background: rgba(0,255,65,0.15); }
+.done .stepName     { color: #8b949e; }
+.done .stepState    { color: var(--border); }
+
+.error .indicator   { background: rgba(248,81,73,0.15); }
+.error .stepName    { color: var(--col-error); }
+.error .stepState   { color: var(--col-error); }
+
+.stepLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stepName  { font-size: 12px; font-weight: 500; white-space: nowrap; }
+.stepState { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.check  { color: var(--green); font-size: 13px; }
+.errX   { color: var(--col-error); font-size: 13px; }
+.num    { color: var(--col-info); }
+
+.pulse {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: blink 1s ease-in-out infinite;
+}
+
+/* Connector line between steps */
+.connector {
+  width: 40px;
+  height: 1px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.connectorDone { background: var(--green-dim); }

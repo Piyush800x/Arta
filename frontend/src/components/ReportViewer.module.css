@@ -1,0 +1,61 @@
+.wrap {
+  border: 1px solid var(--green);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--black-2);
+  box-shadow: 0 0 32px var(--green-glow);
+  animation: fade-in-up 0.4s ease both;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--green-glow-s);
+  border-bottom: 1px solid var(--green);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon {
+  color: var(--green);
+  font-size: 16px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--green);
+}
+
+.downloadBtn {
+  background: var(--green);
+  color: var(--black);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 7px 16px;
+  border-radius: 3px;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.downloadBtn:hover {
+  background: #00ff41cc;
+  box-shadow: 0 0 16px var(--green-glow);
+}
+
+.iframe {
+  display: block;
+  width: 100%;
+  height: 640px;
+  border: none;
+  background: #fff;
+}
