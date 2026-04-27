@@ -10,6 +10,7 @@ import textwrap
 from pathlib import Path
 
 from config import DEMO_MODE, SANDBOX_DIR
+from tools.ssh_runner import SSHRunner
 
 # Pre-recorded output for CVE-2011-2523 (vsftpd backdoor)
 # Used when DEMO_MODE=true so the demo never depends on msfconsole availability.
@@ -33,6 +34,7 @@ def run_msf_module(
     target_ip: str,
     target_port: int,
     session_id: str,
+    attacker: dict = None,
 ) -> dict:
     """
     Run a Metasploit module and return stdout.
@@ -57,13 +59,30 @@ def run_msf_module(
     script_path.parent.mkdir(parents=True, exist_ok=True)
     script_path.write_text(resource_script)
 
-    result = subprocess.run(
-        ["msfconsole", "-q", "-r", str(script_path)],
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
+    if attacker:
+        runner = SSHRunner(attacker["ip"], attacker["username"], attacker["password"])
+        remote_script_path = f"/tmp/{session_id}_msf.rc"
+        runner.upload_file(script_path, remote_script_path)
+        
+        # Run msfconsole remotely
+        res = runner.run_command(f"msfconsole -q -r {remote_script_path}", timeout=120)
+        runner.run_command(f"rm -f {remote_script_path}", timeout=10)
+        
+        stdout = res.get("stdout", "")
+        succeeded = any(kw in stdout for kw in ("session", "Found shell", "uid=0", "Command shell session"))
+        return {"stdout": stdout, "succeeded": succeeded}
 
-    stdout = result.stdout
-    succeeded = any(kw in stdout for kw in ("session", "Found shell", "uid=0"))
+    try:
+        result = subprocess.run(
+            ["msfconsole", "-q", "-r", str(script_path)],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        stdout = result.stdout
+        succeeded = any(kw in stdout for kw in ("session", "Found shell", "uid=0"))
+    except FileNotFoundError:
+        stdout = "Error: msfconsole not found on system PATH. Skipping Metasploit exploit."
+        succeeded = False
+
     return {"stdout": stdout, "succeeded": succeeded}

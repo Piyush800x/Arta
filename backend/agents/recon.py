@@ -30,24 +30,32 @@ async def run(
     await events.emit(session_id, "recon", "info", "RECON_STARTED",
                       payload={"target": target_ip})
 
-    # ── Run nmap ──────────────────────────────────────────────────────
     full_scan = (scan_depth == "full")
-    await events.emit(session_id, "recon", "tool", "NMAP_LAUNCHED",
-                      tool="nmap",
-                      payload={"flags": "-sV -sC --open -p-" if full_scan else "-sn -T5 --max-retries 1 --max-scan-delay 10ms"})
+    flag_str  = "-Pn -n -sV -sC --open -p-" if full_scan else "-Pn -n -sV -T5 --max-retries 1 --max-scan-delay 10ms"
 
-    start = time.monotonic()
-    nmap_xml = await asyncio.to_thread(run_nmap, target_ip, session_dir, full_scan=full_scan)
+    await events.emit(session_id, "recon", "tool", "NMAP_LAUNCHED",
+                      tool="nmap", payload={"flags": flag_str})
+
+    session = await db.get_session(session_id)
+    attacker = None
+    if session and session.get("attacker_ip"):
+        attacker = {
+            "ip": session.get("attacker_ip"),
+            "username": session.get("attacker_user"),
+            "password": session.get("attacker_pass"),
+        }
+
+    start      = time.monotonic()
+    nmap_xml   = await asyncio.to_thread(run_nmap, target_ip, session_dir, full_scan=full_scan, attacker=attacker, session_id=session_id)
     duration_ms = int((time.monotonic() - start) * 1000)
 
-    # Count open ports from XML (quick parse — Gemini does the full parse)
     port_count = nmap_xml.count('<port protocol=')
-    await events.emit(session_id, "recon", "info", f"NMAP_COMPLETE — {port_count} open port(s) found",
+    await events.emit(session_id, "recon", "info",
+                      f"NMAP_COMPLETE — {port_count} open port(s) found",
                       tool="nmap", duration_ms=duration_ms)
 
-    # ── Gemini: parse nmap XML into structured JSON ───────────────────
-    await events.emit(session_id, "recon", "gemini", "GEMINI_PARSING nmap XML output",
-                      tool="gemini_function_call")
+    await events.emit(session_id, "recon", "gemini",
+                      "GEMINI_PARSING nmap XML output", tool="gemini_function_call")
 
     prompt = f"""
 You are a penetration tester parsing nmap output.
@@ -72,11 +80,10 @@ NMAP XML:
 {nmap_xml[:8000]}
 """
 
-    start = time.monotonic()
-    recon_data = await gemini.ask_json(prompt)
+    start       = time.monotonic()
+    recon_data  = await gemini.ask_json(prompt)
     duration_ms = int((time.monotonic() - start) * 1000)
 
-    # ── Persist ───────────────────────────────────────────────────────
     recon_path = session_dir / "recon.json"
     recon_path.write_text(json.dumps(recon_data, indent=2))
 

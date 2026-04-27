@@ -7,12 +7,12 @@ retry logic live here so agents stay clean.
 
 import asyncio
 import json
+import re
 import google.generativeai as genai
 from config import GEMINI_API_KEY
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# MODEL = "gemini-2.0-flash"
 MODEL = "gemini-flash-lite-latest"
 
 # Gemini free tier: 15 req/min — enforce a small gap between calls.
@@ -30,8 +30,22 @@ async def ask(prompt: str) -> str:
 async def ask_json(prompt: str) -> dict | list:
     """
     Send a prompt that expects a JSON response.
-    Strips markdown fences if Gemini wraps the output in them.
+    - Strips markdown fences if Gemini wraps the output in them.
+    - Retries once with extraction if JSON parsing fails.
     """
-    raw = await ask(prompt + "\n\nRespond ONLY with valid JSON. No markdown, no explanation.")
-    cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    return json.loads(cleaned)
+    full_prompt = prompt + "\n\nRespond ONLY with valid JSON. No markdown, no explanation."
+    raw = await ask(full_prompt)
+
+    # Strip ```json ... ``` fences
+    cleaned = raw.strip()
+    cleaned = re.sub(r"^```(?:json)?", "", cleaned).strip()
+    cleaned = re.sub(r"```$",          "", cleaned).strip()
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        # Try to extract the first JSON object/array from surrounding text
+        match = re.search(r"(\{.*\}|\[.*\])", cleaned, re.DOTALL)
+        if match:
+            return json.loads(match.group(1))
+        raise
