@@ -123,7 +123,15 @@ export function buildReportHtml(report: Record<string, unknown>): string {
   <p>${String(report.executive_summary ?? "").replace(/\n/g, "</p><p>")}</p>
 
   <h2>Methodology</h2>
-  <p>${report.methodology ?? ""}</p>
+  <p>
+    ${typeof report.methodology === 'object' && report.methodology !== null ?
+      `<strong>Approach:</strong> ${(report.methodology as any).approach || ''}<br/><br/>
+      <strong>Tools:</strong> ${((report.methodology as any).tools_used || []).join(', ')}<br/><br/>
+      <strong>Phases:</strong><br/>
+      ${((report.methodology as any).phases || []).map((p: any) => `<em>${p.phase}:</em> ${p.description}`).join('<br/>')}`
+      : report.methodology ?? ""
+    }
+  </p>
 </div>
 
 <!-- Findings -->

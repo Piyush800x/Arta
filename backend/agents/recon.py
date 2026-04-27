@@ -6,6 +6,7 @@ agents/recon.py — Reconnaissance agent.
 3. Writes recon.json and persists to SQLite.
 """
 
+import asyncio
 import json
 import time
 from pathlib import Path
@@ -33,10 +34,10 @@ async def run(
     full_scan = (scan_depth == "full")
     await events.emit(session_id, "recon", "tool", "NMAP_LAUNCHED",
                       tool="nmap",
-                      payload={"flags": "-sV -sC --open -T4" + (" -p-" if full_scan else "")})
+                      payload={"flags": "-sV -sC --open -p-" if full_scan else "-sn -T5 --max-retries 1 --max-scan-delay 10ms"})
 
     start = time.monotonic()
-    nmap_xml = run_nmap(target_ip, session_dir, full_scan=full_scan)
+    nmap_xml = await asyncio.to_thread(run_nmap, target_ip, session_dir, full_scan=full_scan)
     duration_ms = int((time.monotonic() - start) * 1000)
 
     # Count open ports from XML (quick parse — Gemini does the full parse)

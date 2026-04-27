@@ -12,7 +12,8 @@ from config import GEMINI_API_KEY
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-MODEL = "gemini-2.0-flash"
+# MODEL = "gemini-2.0-flash"
+MODEL = "gemini-flash-lite-latest"
 
 # Gemini free tier: 15 req/min — enforce a small gap between calls.
 _CALL_DELAY_SECONDS = 4

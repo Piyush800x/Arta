@@ -38,7 +38,7 @@ async def emit(
     event = {
         "id":          str(uuid.uuid4()),
         "session_id":  session_id,
-        "timestamp":   datetime.now(timezone.utc).isoformat(),
+        "ts":   datetime.now(timezone.utc).isoformat(),
         "agent":       agent,
         "level":       level,
         "tool":        tool,
@@ -52,4 +52,7 @@ async def emit(
         await _queue.put(event)
 
     # Persist for reconnect replay
-    await db.insert_log(event)
+    try:
+        await db.insert_log(event)
+    except Exception:
+        pass

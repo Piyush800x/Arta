@@ -182,7 +182,7 @@ async def get_report(session_id: str):
     if not report_path or not Path(report_path).exists():
         raise HTTPException(status_code=404, detail="Report not yet generated")
 
-    return json.loads(Path(report_path).read_text(encoding="utf-8"))
+    return json.loads(Path(report_path).read_text())
 
 
 # ── Helpers ───────────────────────────────────────────────────────────

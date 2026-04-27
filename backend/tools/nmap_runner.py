@@ -23,9 +23,12 @@ def run_nmap(target_ip: str, session_dir: Path, full_scan: bool = False) -> str:
     """
     xml_path = session_dir / "nmap.xml"
 
-    flags = ["-sV", "-sC", "--open", "-T4", "--max-retries", "2"]
     if full_scan:
-        flags += ["-p-"]
+        flags = ["-sV", "-sC", "--open", "-T4", "--max-retries", "2", "-p-"]
+        timeout_val = 300
+    else:
+        flags = ["-sV", "-T5", "--max-retries", "1", "--max-scan-delay", "10ms"]
+        timeout_val = 60
 
     cmd = ["nmap"] + flags + ["-oX", str(xml_path), target_ip]
 
@@ -33,10 +36,10 @@ def run_nmap(target_ip: str, session_dir: Path, full_scan: bool = False) -> str:
         cmd,
         capture_output=True,
         text=True,
-        timeout=300 if full_scan else 120,
+        timeout=timeout_val,
     )
 
     if result.returncode != 0:
         raise RuntimeError(f"nmap exited with code {result.returncode}: {result.stderr}")
 
-    return xml_path.read_text(encoding="utf-8")
+    return xml_path.read_text()
