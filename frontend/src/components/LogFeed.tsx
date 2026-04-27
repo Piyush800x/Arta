@@ -35,8 +35,11 @@ const LEVEL_ICON: Record<LogLevel, string> = {
 // ── Helpers ───────────────────────────────────────────────────────────
 
 function formatTime(iso: string): string {
+  if (!iso) return "--:--:--";
   try {
-    return new Date(iso).toLocaleTimeString("en-GB", { hour12: false });
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "--:--:--";
+    return d.toLocaleTimeString("en-GB", { hour12: false });
   } catch {
     return "--:--:--";
   }
@@ -76,7 +79,7 @@ export default function LogFeed({ logs, autoScroll = true }: Props) {
           style={{ animationDelay: "0ms" }}
         >
           {/* Time */}
-          <span className={styles.time}>{formatTime(log.timestamp)}</span>
+          <span className={styles.time}>{formatTime(log.ts)}</span>
 
           {/* Agent badge */}
           <span className={`${styles.agent} ${AGENT_CLASS[log.agent] ?? ""}`}>

@@ -12,6 +12,12 @@ export default function HomePage() {
   const [targetIp, setTargetIp]     = useState("");
   const [scanDepth, setScanDepth]   = useState<ScanDepth>("standard");
   const [authorised, setAuthorised] = useState(false);
+  
+  const [useRemote, setUseRemote]   = useState(false);
+  const [attackerIp, setAttackerIp] = useState("");
+  const [attackerUser, setAttackerUser] = useState("");
+  const [attackerPass, setAttackerPass] = useState("");
+
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState<string | null>(null);
 
@@ -22,7 +28,14 @@ export default function HomePage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await startScan(targetIp.trim(), scanDepth, authorised);
+      const res = await startScan(
+        targetIp.trim(), 
+        scanDepth, 
+        authorised,
+        useRemote ? attackerIp.trim() : undefined,
+        useRemote ? attackerUser.trim() : undefined,
+        useRemote ? attackerPass : undefined
+      );
       router.push(`/scan/${res.session_id}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to start scan.");
@@ -103,6 +116,56 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Remote Attacker VM */}
+          <div className={styles.field} style={{ marginTop: "16px", borderTop: "1px solid #222", paddingTop: "16px" }}>
+            <label className={styles.authCheck} style={{ marginBottom: "12px" }}>
+              <input
+                type="checkbox"
+                checked={useRemote}
+                onChange={(e) => setUseRemote(e.target.checked)}
+                disabled={loading}
+                className={styles.checkbox}
+              />
+              <span className={styles.authText} style={{ color: "#00ff41", fontWeight: "bold" }}>
+                Enable Remote Attacker Mode (SSH into Kali VM for Nmap/MSF)
+              </span>
+            </label>
+
+            {useRemote && (
+              <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
+                <input
+                  className={styles.input}
+                  style={{ flex: 1 }}
+                  type="text"
+                  placeholder="Attacker IP"
+                  value={attackerIp}
+                  onChange={(e) => setAttackerIp(e.target.value)}
+                  disabled={loading}
+                  spellCheck={false}
+                />
+                <input
+                  className={styles.input}
+                  style={{ flex: 1 }}
+                  type="text"
+                  placeholder="Username"
+                  value={attackerUser}
+                  onChange={(e) => setAttackerUser(e.target.value)}
+                  disabled={loading}
+                  spellCheck={false}
+                />
+                <input
+                  className={styles.input}
+                  style={{ flex: 1 }}
+                  type="password"
+                  placeholder="Password"
+                  value={attackerPass}
+                  onChange={(e) => setAttackerPass(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+            )}
           </div>
 
           {/* Authorisation */}

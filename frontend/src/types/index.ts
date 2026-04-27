@@ -15,7 +15,7 @@ export type SessionStatus =
 export interface LogEvent {
   id:          string;
   session_id:  string;
-  timestamp:   string;   // ISO 8601
+  ts:          string;   // ISO 8601
   agent:       AgentName;
   level:       LogLevel;
   tool:        string | null;

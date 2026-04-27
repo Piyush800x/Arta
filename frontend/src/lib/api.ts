@@ -9,12 +9,22 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 export async function startScan(
   targetIp: string,
   scanDepth: ScanDepth,
-  authorised: boolean
+  authorised: boolean,
+  attackerIp?: string,
+  attackerUser?: string,
+  attackerPass?: string
 ): Promise<ScanResponse> {
   const res = await fetch(`${BASE}/scan`, {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ target_ip: targetIp, scan_depth: scanDepth, authorised }),
+    body:    JSON.stringify({ 
+      target_ip: targetIp, 
+      scan_depth: scanDepth, 
+      authorised,
+      attacker_ip: attackerIp || undefined,
+      attacker_user: attackerUser || undefined,
+      attacker_pass: attackerPass || undefined
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
