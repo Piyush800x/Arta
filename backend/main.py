@@ -61,6 +61,13 @@ class ScanResponse(BaseModel):
     stream_url: str
 
 
+class ReScanRequest(BaseModel):
+    finding_id: str
+    target_ip:  str
+    port:       int
+    service:    str
+
+
 @app.post("/scan", response_model=ScanResponse)
 async def start_scan(req: ScanRequest):
     if not req.authorised:
@@ -155,6 +162,24 @@ async def get_report(session_id: str):
     if not report_path or not Path(report_path).exists():
         raise HTTPException(status_code=404, detail="Report not yet generated")
     return json.loads(Path(report_path).read_text())
+
+
+@app.post("/rescan")
+async def rescan_finding(req: ReScanRequest):
+    """Re-run nmap against a single port to verify a fix."""
+    from tools.nmap_runner import run_nmap
+    import tempfile
+
+    session_dir = Path(tempfile.mkdtemp())
+    xml = await asyncio.to_thread(
+        run_nmap, req.target_ip, session_dir, full_scan=False
+    )
+    # Check if the port still shows the same service/version
+    still_open = f'portid="{req.port}"' in xml
+    status = "still_vulnerable" if still_open else "verified_fixed"
+
+    await db.update_finding_status(req.finding_id, status)
+    return {"finding_id": req.finding_id, "status": status, "nmap_xml": xml[:2000]}
 
 
 def _format_sse(event: dict) -> str:

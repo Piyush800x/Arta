@@ -155,7 +155,12 @@ Produce a comprehensive JSON report matching this exact structure:
   ],
 
   "attack_timeline": [
-    {{ "time_offset": "<+0:00>", "agent": "<agent>", "action": "<description>", "outcome": "<outcome>" }}
+    {{
+      "time_offset": "<e.g. +0:00, +2:30, +5:15>",
+      "agent":       "<one of: orchestrator | recon | vuln | exploit | report>",
+      "action":      "<what this agent did>",
+      "outcome":     "<result of the action>"
+    }}
   ],
 
   "exploitation_summary": {{
@@ -189,6 +194,94 @@ Produce a comprehensive JSON report matching this exact structure:
     start      = time.monotonic()
     report_json = await gemini.ask_json(prompt)
     duration_ms = int((time.monotonic() - start) * 1000)
+    
+    # Feature 5 — Gemini Attack Narrative 
+    narrative_prompt = f"""
+    You are a red team operator writing a brief attack narrative for a pentest report.
+    Based on these findings and exploitation results, write a 3-4 paragraph story
+    describing how a real-world attacker would discover, exploit, and persist on this system.
+    Be specific about which CVEs they would chain together and in what order.
+    Use past tense. Write for a technical audience.
+
+    Findings: {json.dumps([
+        {"cve_id": f.get("cve_id"), "service": f.get("affected_service"),
+          "port": f.get("affected_port"), "succeeded": f.get("exploit_succeeded"),
+          "access_level": f.get("access_level", "none")}
+        for f in exploit_data
+    ], indent=2)}
+    """
+
+    try:
+        narrative = await gemini.ask(narrative_prompt)
+        report_json["attack_narrative"] = narrative
+    except Exception:
+        report_json["attack_narrative"] = ""
+
+    # ── Bug 1 Fix: Guarantee every DB finding appears in the report ──────────────────
+    # Gemini may omit low-severity findings. Merge them in so the PDF is complete.
+    reported_cve_ids = {f.get("cve_id") for f in report_json.get("findings", [])}
+
+    for db_finding in all_findings:
+        if db_finding.get("cve_id") in reported_cve_ids:
+            continue  # already in Gemini's output
+
+        # Build a minimal finding block from DB data
+        refs_raw = db_finding.get("references", "[]")
+        try:
+            refs_list = json.loads(refs_raw) if isinstance(refs_raw, str) else refs_raw
+        except Exception:
+            refs_list = []
+
+        fallback_finding = {
+            "cve_id":             db_finding.get("cve_id", ""),
+            "title":              db_finding.get("cve_id", ""),
+            "severity":           db_finding.get("severity", "info"),
+            "cvss_v3":            db_finding.get("cvss_v3", 0.0),
+            "cvss_vector":        db_finding.get("cvss_vector", ""),
+            "cvss_breakdown":     {
+                "attack_vector":       db_finding.get("attack_vector", ""),
+                "attack_complexity":   db_finding.get("exploit_complexity", ""),
+                "privileges_required": db_finding.get("privileges_required", ""),
+                "user_interaction":    db_finding.get("user_interaction", ""),
+            },
+            "affected_component": f"{db_finding.get('affected_service')}:{db_finding.get('affected_port')} ({db_finding.get('detected_version', '')})",
+            "owasp_category":     db_finding.get("owasp_category", ""),
+            "cwe":                db_finding.get("cwe", ""),
+            "description":        db_finding.get("description", ""),
+            "technical_detail":   "",
+            "business_impact":    db_finding.get("impact", ""),
+            "exploit_result": {
+                "attempted":    db_finding.get("exploit_available", False),
+                "succeeded":    db_finding.get("exploit_succeeded", False),
+                "method":       db_finding.get("exploit_source", "none"),
+                "access_level": db_finding.get("access_level", "none"),
+                "evidence":     db_finding.get("evidence_stdout", "") or "",
+                "artifacts":    "",
+            },
+            "remediation": {
+                "short":      db_finding.get("remediation_short", ""),
+                "detail":     "",
+                "command":    db_finding.get("remediation_cmd", ""),
+                "package":    db_finding.get("remediation_package", ""),
+                "validation": "",
+            },
+            "references": refs_list,
+        }
+        report_json.setdefault("findings", []).append(fallback_finding)
+
+    # Also rebuild cvss_table to include every finding
+    report_json["cvss_table"] = [
+        {
+            "cve_id":   f.get("cve_id", ""),
+            "title":    f.get("title", f.get("cve_id", "")),
+            "cvss_v3":  f.get("cvss_v3", 0.0),
+            "severity": f.get("severity", "info"),
+            "exploited": f.get("exploit_result", {}).get("succeeded", False)
+                         if isinstance(f.get("exploit_result"), dict)
+                         else f.get("exploit_succeeded", False),
+        }
+        for f in report_json.get("findings", [])
+    ]
 
     report_path = session_dir / "report.json"
     report_path.write_text(json.dumps(report_json, indent=2))

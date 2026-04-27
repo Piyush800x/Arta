@@ -1,6 +1,6 @@
 # ARTA Frontend — Next.js 14
 
-**Autonomous Red Team Agent v2.0 | Bot to Agent Hackathon | IEM Kolkata | 27 April 2026**
+**Autonomous Red Team Agent v2.0**
 
 Live scan dashboard with real-time SSE log streaming, agent stepper, findings table,
 and in-browser PDF report viewer.

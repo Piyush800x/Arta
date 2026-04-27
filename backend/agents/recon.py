@@ -31,10 +31,9 @@ async def run(
                       payload={"target": target_ip})
 
     full_scan = (scan_depth == "full")
-    flag_str  = "-Pn -n -sV -sC --open -p-" if full_scan else "-Pn -n -sV -T5 --max-retries 1 --max-scan-delay 10ms"
-
+    
     await events.emit(session_id, "recon", "tool", "NMAP_LAUNCHED",
-                      tool="nmap", payload={"flags": flag_str})
+                      tool="nmap", payload={"depth": scan_depth, "all_ports": full_scan})
 
     session = await db.get_session(session_id)
     attacker = None
@@ -50,9 +49,10 @@ async def run(
     duration_ms = int((time.monotonic() - start) * 1000)
 
     port_count = nmap_xml.count('<port protocol=')
-    await events.emit(session_id, "recon", "info",
-                      f"NMAP_COMPLETE — {port_count} open port(s) found",
-                      tool="nmap", duration_ms=duration_ms)
+    if port_count == 0:
+        await events.emit(session_id, "recon", "warning",
+                          "NO_PORTS_FOUND — Target might be offline, firewalled, or VPN is disconnected",
+                          tool="nmap")
 
     await events.emit(session_id, "recon", "gemini",
                       "GEMINI_PARSING nmap XML output", tool="gemini_function_call")
@@ -77,7 +77,7 @@ Respond with this JSON structure:
 }}
 
 NMAP XML:
-{nmap_xml[:8000]}
+{nmap_xml[:30000]}
 """
 
     start       = time.monotonic()

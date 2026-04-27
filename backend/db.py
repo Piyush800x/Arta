@@ -185,3 +185,15 @@ async def get_recent_logs(session_id: str, limit: int = 200) -> list[dict]:
             (session_id, limit),
         ) as cursor:
             return [dict(row) async for row in cursor]
+
+
+async def update_finding_status(finding_id: str, status: str) -> None:
+    async with aiosqlite.connect(SQLITE_PATH) as db:
+        await db.execute(
+            "ALTER TABLE findings ADD COLUMN IF NOT EXISTS rescan_status TEXT",
+        )
+        await db.execute(
+            "UPDATE findings SET rescan_status = ? WHERE id = ?",
+            (status, finding_id),
+        )
+        await db.commit()

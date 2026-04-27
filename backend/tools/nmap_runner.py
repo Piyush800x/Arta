@@ -27,11 +27,13 @@ def run_nmap(target_ip: str, session_dir: Path, full_scan: bool = False, attacke
     xml_path = session_dir / "nmap.xml"
 
     if full_scan:
-        flags       = ["-Pn", "-n", "-sV", "-sC", "--open", "-T4", "--max-retries", "2", "-p-"]
-        timeout_val = 300
+        # Full scan: all ports, service detection, default scripts
+        flags       = ["-sS", "-Pn", "-n", "-sV", "-sC", "--open", "-T4", "--max-retries", "3", "-p-"]
+        timeout_val = 1200  # 20 mins for full 65k scan
     else:
-        flags       = ["-Pn", "-n", "-sV", "-T5", "--max-retries", "1", "--max-scan-delay", "10ms"]
-        timeout_val = 60
+        # Lite scan: top 1000 ports, service detection
+        flags       = ["-sS", "-Pn", "-n", "-sV", "-T4", "--max-retries", "2"]
+        timeout_val = 300   # 5 mins for top 1000 ports + service detection
 
     if attacker:
         runner = SSHRunner(attacker["ip"], attacker["username"], attacker["password"])
