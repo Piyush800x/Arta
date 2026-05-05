@@ -24,6 +24,53 @@ export function buildReportHtml(report: Record<string, unknown>): string {
     return s === "" || s === "null" || s === "undefined" ? fallback : s;
   }
 
+  /**
+   * Lightweight markdown → HTML converter.
+   * Handles: headers, bold, italic, inline code, code blocks,
+   * unordered/ordered lists, and paragraph breaks.
+   */
+  function mdToHtml(raw: unknown): string {
+    if (raw === null || raw === undefined) return "";
+    let text = String(raw);
+
+    // Fenced code blocks  ```lang ... ```
+    text = text.replace(/```[\w]*\n([\s\S]*?)```/g, '<pre class="evidence">$1</pre>');
+
+    // Inline code  `code`
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Headers  ## → <strong> (we don't want giant headings inside a paragraph)
+    text = text.replace(/^#{1,4}\s+(.+)$/gm, '<strong>$1</strong>');
+
+    // Bold  **text** or __text__
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+    // Italic  *text* or _text_  (but not inside words like some_var)
+    text = text.replace(/(?<![\w])\*([^*]+?)\*(?![\w])/g, '<em>$1</em>');
+    text = text.replace(/(?<![\w])_([^_]+?)_(?![\w])/g, '<em>$1</em>');
+
+    // Unordered list items  - item  or  * item
+    text = text.replace(/^[\-\*]\s+(.+)$/gm, '<li>$1</li>');
+    // Wrap consecutive <li> in <ul>
+    text = text.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+
+    // Ordered list items  1. item
+    text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+    text = text.replace(/((?:<li>.*<\/li>\n?)+)/g, (match) => {
+      // Only wrap in <ol> if not already wrapped
+      if (match.startsWith('<ul>') || match.startsWith('<ol>')) return match;
+      return `<ol>${match}</ol>`;
+    });
+
+    // Paragraph breaks (double newline → </p><p>)
+    text = text.replace(/\n\n+/g, '</p><p>');
+    // Single newlines → <br>
+    text = text.replace(/\n/g, '<br>');
+
+    return text;
+  }
+
   function sevBadge(sev: string): string {
     const color = severityColor[sev.toLowerCase()] ?? "#888";
     return `<span class="severity-badge" style="background:${color}">${sev.toUpperCase()}</span>`;
@@ -69,7 +116,8 @@ export function buildReportHtml(report: Record<string, unknown>): string {
         </div>
         <h3>${f.title}</h3>
         <p><strong>Affected:</strong> ${f.affected_component ?? f.affected}</p>
-        <p>${f.description}</p>
+        <p>${mdToHtml(f.description)}</p>
+        ${f.technical_detail ? `<p>${mdToHtml(f.technical_detail)}</p>` : ""}
         ${f.evidence_stdout || f.evidence ? `<pre class="evidence">${f.evidence_stdout || f.evidence}</pre>` : ""}
         <p><strong>OWASP:</strong> ${owasp}</p>
         ${remediationBlock(f)}
@@ -202,7 +250,7 @@ export function buildReportHtml(report: Record<string, unknown>): string {
 <!-- Executive Summary -->
 <div class="page">
   <h1>Executive Summary</h1>
-  <p>${String(report.executive_summary ?? "").replace(/\n/g, "</p><p>")}</p>
+  <p>${mdToHtml(report.executive_summary)}</p>
 
   <h2>Network Topology</h2>
   ${topologySvg}
@@ -210,7 +258,7 @@ export function buildReportHtml(report: Record<string, unknown>): string {
   ${narrative ? `
   <h2>Attack Narrative</h2>
   <div style="border-left:3px solid #ff2d55;padding:0 0 0 16px;margin:12px 0">
-    <p style="font-style:italic;color:#555">${narrative.replace(/\n\n/g, "</p><p style='font-style:italic;color:#555'>")}</p>
+    <p style="font-style:italic;color:#555">${mdToHtml(narrative)}</p>
   </div>` : ""}
 
   <h2>Methodology</h2>

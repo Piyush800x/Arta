@@ -203,6 +203,10 @@ Produce a comprehensive JSON report matching this exact structure:
     Be specific about which CVEs they would chain together and in what order.
     Use past tense. Write for a technical audience.
 
+    IMPORTANT: Write in plain text only. Do NOT use any markdown formatting
+    (no **, no *, no #, no `, no bullet lists). The output will be rendered
+    directly inside an HTML template.
+
     Findings: {json.dumps([
         {"cve_id": f.get("cve_id"), "service": f.get("affected_service"),
           "port": f.get("affected_port"), "succeeded": f.get("exploit_succeeded"),

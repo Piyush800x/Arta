@@ -1,7 +1,5 @@
 # ARTA — Autonomous Red Team Agent
 
-![ARTA Logo](https://raw.githubusercontent.com/Piyush800x/Arta/main/assets/logo.png)
-
 > **Autonomous penetration testing pipeline powered by Gemini 2.0 Flash.**
 > Recon → Vulnerability Analysis → Exploit → Professional PDF Reporting.
 
